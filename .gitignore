@@ -22,3 +22,4 @@ db.sqlite3
 **/migrations/*
 # Но не игнорировать __init__.py
 !**/migrations/__init__.py
+.DS_Store
