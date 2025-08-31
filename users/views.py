@@ -2,10 +2,11 @@ from django.db import transaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-# from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from rest_framework.generics import CreateAPIView
+import random
+import string
 
 from .serializers import (
     RegisterValidateSerializer,
@@ -13,18 +14,20 @@ from .serializers import (
     ConfirmationSerializer
 )
 from users.models import ConfirmationCode, CustomUser
-import random
-import string
 
 
 class AuthorizationAPIView(CreateAPIView):
     serializer_class = AuthValidateSerializer
 
     def post(self, request):
-        serializer = AuthValidateSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user = authenticate(**serializer.validated_data)
+        email = serializer.validated_data['email']
+        password = serializer.validated_data['password']
+
+        # authenticate теперь работает с email, так как в CustomUser USERNAME_FIELD = 'email'
+        user = authenticate(request, email=email, password=password)
 
         if user:
             if not user.is_active:
@@ -51,19 +54,19 @@ class RegistrationAPIView(CreateAPIView):
 
         email = serializer.validated_data['email']
         password = serializer.validated_data['password']
+        phone_number = serializer.validated_data['phone_number']
 
-        # Use transaction to ensure data consistency
         with transaction.atomic():
             user = CustomUser.objects.create_user(
                 email=email,
+                phone_number=phone_number,
                 password=password,
                 is_active=False
             )
 
-            # Create a random 6-digit code
             code = ''.join(random.choices(string.digits, k=6))
 
-            confirmation_code = ConfirmationCode.objects.create(
+            ConfirmationCode.objects.create(
                 user=user,
                 code=code
             )
@@ -81,18 +84,16 @@ class ConfirmUserAPIView(CreateAPIView):
     serializer_class = ConfirmationSerializer
 
     def post(self, request):
-        serializer = ConfirmationSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user_id = serializer.validated_data['user_id']
+        user = serializer.validated_data['user']
 
         with transaction.atomic():
-            user = CustomUser.objects.get(id=user_id)
             user.is_active = True
             user.save()
 
             token, _ = Token.objects.get_or_create(user=user)
-
             ConfirmationCode.objects.filter(user=user).delete()
 
         return Response(
