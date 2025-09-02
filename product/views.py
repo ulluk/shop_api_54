@@ -6,7 +6,7 @@ from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIV
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
-from common.permissions import IsOwner, IsAnonymous, CanEditWithin15Minutes
+from common.permissions import IsOwner, IsAnonymous, CanEditWithin15Minutes, IsModerator
 
 from .models import Category, Product, Review
 from .serializers import (
@@ -39,6 +39,7 @@ class CategoryListCreateAPIView(ListCreateAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     pagination_class = CustomPagination
+    
 
     def post(self, request, *args, **kwargs):
         serializer = CategoryValidateSerializer(data=request.data)
@@ -69,7 +70,7 @@ class ProductListCreateAPIView(ListCreateAPIView):
     queryset = Product.objects.select_related('category').all()
     serializer_class = ProductSerializer
     pagination_class = CustomPagination
-    permission_classes = [IsOwner | IsAnonymous]
+    permission_classes = [IsOwner | IsAnonymous | IsModerator]
 
     def post(self, request, *args, **kwargs):
         serializer = ProductValidateSerializer(data=request.data)
@@ -99,7 +100,7 @@ class ProductDetailAPIView(RetrieveUpdateDestroyAPIView):
     serializer_class = ProductSerializer
     lookup_field = 'id'
     permission_classes = [
-        (IsOwner & CanEditWithin15Minutes) | IsAnonymous
+        (IsOwner & CanEditWithin15Minutes) | IsAnonymous | IsModerator
     ]
 
     def put(self, request, *args, **kwargs):
