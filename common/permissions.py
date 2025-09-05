@@ -22,17 +22,17 @@ class CanEditWithin15Minutes(BasePermission):
 
 class IsModerator(BasePermission):
     def has_permission(self, request, view):
-        
-        if not request.user.is_staff:
-            return False
-        
-        if not request.user or not request.user.is_authenticated:
-            return False
-        
-        if request.method == "POST":
-            return False
-        
-        return True
+        return (
+            request.user
+            and request.user.is_authenticated
+            and request.user.is_staff
+            and request.method != "POST"
+        )
     
     def has_object_permission(self, request, view, obj):
-        return True
+        return (
+            request.user
+            and request.user.is_authenticated
+            and request.user.is_staff
+            and request.method in SAFE_METHODS + ("PUT", "PATCH", "DELETE")
+        )
