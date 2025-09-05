@@ -18,7 +18,7 @@ from .serializers import (
     ProductValidateSerializer,
     ReviewValidateSerializer
 )
-
+from common.validators import validate_user_age
 PAGE_SIZE = 5
 
 
@@ -73,6 +73,9 @@ class ProductListCreateAPIView(ListCreateAPIView):
     permission_classes = [IsOwner | IsAnonymous | IsModerator]
 
     def post(self, request, *args, **kwargs):
+        validate_user_age(request.user)
+
+
         serializer = ProductValidateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 

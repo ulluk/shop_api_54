@@ -1,14 +1,14 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from users.managers import CustomUserManager
-
+import datetime
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     phone_number = models.CharField(max_length=15)
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
-
+    birthdate = birthdate = models.DateField(null=True, blank=True)
     objects = CustomUserManager()
 
     USERNAME_FIELD = "email"
