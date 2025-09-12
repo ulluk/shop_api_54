@@ -20,7 +20,7 @@ from .serializers import (
 )
 from common.validators import validate_user_age
 PAGE_SIZE = 5
-
+from django.core.cache import cache
 
 class CustomPagination(PageNumberPagination):
     def get_paginated_response(self, data):
@@ -96,7 +96,16 @@ class ProductListCreateAPIView(ListCreateAPIView):
 
         return Response(data=ProductSerializer(product).data,
                         status=status.HTTP_201_CREATED)
-
+    def get(self, request, *args, **kwargs):
+        cached_data = cache.get("product_list")
+        if cached_data:
+            print("redis is work")
+            return Response(data=cached_data, status=status.HTTP_200_OK)
+        response = super().get(self, request, *args, **kwargs)
+        print('postgres')
+        if response.data.get("total", 0) > 0:
+            cache.set("product_list", response.data, timeout=120)
+        return response
 
 class ProductDetailAPIView(RetrieveUpdateDestroyAPIView):
     queryset = Product.objects.select_related('category').all()

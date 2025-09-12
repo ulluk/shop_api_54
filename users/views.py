@@ -8,6 +8,7 @@ from rest_framework.generics import CreateAPIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 import random
 import string
+from django.core.cache import cache
 
 from .serializers import (
     RegisterValidateSerializer,
@@ -28,7 +29,7 @@ class AuthorizationAPIView(CreateAPIView):
         email = serializer.validated_data['email']
         password = serializer.validated_data['password']
 
-        # authenticate теперь работает с email, так как в CustomUser USERNAME_FIELD = 'email'
+        
         user = authenticate(request, email=email, password=password)
 
         if user:
@@ -67,11 +68,9 @@ class RegistrationAPIView(CreateAPIView):
             )
 
             code = ''.join(random.choices(string.digits, k=6))
+            print("Сохраняем код:", code, "в ключ:", f"confirm_code:{user.id}")
 
-            ConfirmationCode.objects.create(
-                user=user,
-                code=code
-            )
+            cache.set(f"confirm_code:{user.id}", code, timeout=300)
 
         return Response(
             status=status.HTTP_201_CREATED,
@@ -96,7 +95,7 @@ class ConfirmUserAPIView(CreateAPIView):
             user.save()
 
             token, _ = Token.objects.get_or_create(user=user)
-            ConfirmationCode.objects.filter(user=user).delete()
+            
 
         return Response(
             status=status.HTTP_200_OK,
