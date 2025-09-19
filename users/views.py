@@ -9,6 +9,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 import random
 import string
 from django.core.cache import cache
+from users.tasks import send_otm_email
 
 from .serializers import (
     RegisterValidateSerializer,
@@ -72,6 +73,7 @@ class RegistrationAPIView(CreateAPIView):
 
             cache.set(f"confirm_code:{user.id}", code, timeout=300)
 
+        send_otm_email.delay()
         return Response(
             status=status.HTTP_201_CREATED,
             data={
