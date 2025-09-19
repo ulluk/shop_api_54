@@ -2,6 +2,7 @@ import os
 
 from celery import Celery
 from celery.schedules import crontab
+
 # Set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'shop_api.settings')
 
@@ -16,15 +17,16 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 # Load task modules from all registered Django apps.
 app.autodiscover_tasks()
 
-
-@app.task(bind=True, ignore_result=True)
-def debug_task(self):
-    print(f'Request: {self.request!r}')
-
-
 app.conf.beat_schedule = {
     "send_daily_report":{
-        "task":"users.tasks.send_daily_report",    
-        "schedule": crontab()
-    }    
+        "task": "users.tasks.send_daily_report",
+        "schedule": crontab(minute="*")
+    },
+
+    "clear-cache-every-day": {
+        "task": "users.tasks.clear_cache",
+        "schedule": crontab(hour=3, minute=0),  
+    },
+    
 }
+
